@@ -1,0 +1,50 @@
+<h1>Videos</h1>
+
+<% if @video.errors.any? %>
+    <div class="error">
+        <h2><%= pluralize(@video.errors.count, "error") %> prohibited this video from being saved:</h2>
+        <ul>
+            <% @video.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+            <% end %>
+        </ul>
+    </div>
+<% end %>
+
+<%= form_for @video, url: videos_path, method: :post do |f| %>
+    <%= label_tag :link %>
+    <%= f.text_field :link %>
+    <%= f.submit "Add Video" %>
+<% end %>
+
+    <table class="video-table">
+        <thead>
+            <tr>
+                <th>Video Title</th>
+                <th>YouTube Video Link</th>
+                <th>Size</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        <% @videos.each do |video| %>
+        <tr>
+            <td><%= link_to video.title, download_video_path(video), data: { turbo: false } %></td>
+            <td><%= link_to video.link, video.link %></td>
+            <td><%= number_to_human_size(video.recording.byte_size) if video.recording.attached? %></td>
+            <td><%= video_status_badge(video.status) %>
+            </td>
+            <td class="actions">
+                <%= button_to "Download", download_video_path(video), method: :get, form: { data: { turbo: false } } %>
+                <%= button_to "Retry", retry_video_path(video), method: :get %>
+                <%= button_to "Delete", video_path(video), method: :delete %>
+            </td>
+        </tr>
+        <% end %>
+    </tbody>
+</table>
+
+<% if @videos.blank? %>
+    <p>No videos yet. Add one to get started.</p>
+<% end %>

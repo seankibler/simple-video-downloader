@@ -1,0 +1,17 @@
+<h1>Create an Account</h1>
+
+<p>Choose a username of your preference, it just needs to be unique and not already in use by someone else.</p>
+
+<p>For the secret code, enter the church's street address number, only the number, no street name or city or state or zip code.</p>
+
+<%= form_for @user do |f| %>
+    <%= f.label :username %>
+    <%= f.text_field :username %>
+    <%= f.label :secret_code %>
+    <%= f.password_field :secret_code %>
+    <%= f.submit "Create Account" %>
+<% end %>
+
+<% if flash[:error] %>
+    <div class="error"><%= flash[:error] %></div>
+<% end %>
