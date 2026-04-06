@@ -1,6 +1,7 @@
 class Video < ApplicationRecord
     MAX_VIDEOS = 50.freeze
     MAX_STORAGE = 100.megabyte.freeze
+    VALID_YOUTUBE_HOSTS = %w[www.youtube.com www.youtu.be youtube.com youtu.be].freeze
 
     belongs_to :user
 
@@ -10,8 +11,11 @@ class Video < ApplicationRecord
 
     enum :status, { pending: 0, downloaded: 1, failed: 2, processing: 3 }
 
+    validates :link, presence: true
+
     validate :video_limit
     validate :video_storage_limit
+    validate :youtube_link
 
     def set_status
         self.status = :pending
@@ -52,18 +56,28 @@ class Video < ApplicationRecord
     private
 
     def video_limit
-        return true if user.nil?
-
         if user.video_limit_exceeded?
             errors.add(:base, "You have reached the maximum number of videos (#{User::MAX_VIDEOS})")
         end
     end
 
     def video_storage_limit
-        return true if user.nil?
-        
         if user.video_storage_limit_exceeded?
             errors.add(:base, "You have reached the maximum storage limit (#{User::MAX_STORAGE / 1.megabyte}MB)")
         end
+    end
+
+    def youtube_link
+        uri = URI.parse(link)
+
+        if uri.scheme != "https"
+            errors.add(:link, "must be https secured links")
+        end
+
+        unless uri.host.in?(VALID_YOUTUBE_HOSTS)
+            errors.add(:link, "only #{VALID_YOUTUBE_HOSTS.join(", ")} are allowed")
+        end
+
+        true
     end
 end
