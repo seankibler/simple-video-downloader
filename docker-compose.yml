@@ -9,8 +9,22 @@ services:
     environment:
       - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/sardis
+      - SECRET_CODE=${SECRET_CODE}
     depends_on:
       - db
+  worker:
+    image: registry.digitalocean.com/${DIGITALOCEAN_REGISTRY_NAME}/simple-video-downloader:latest
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/sardis
+      - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+      - SECRET_CODE=${SECRET_CODE}
+    volumes:
+      - ./:/rails
+    depends_on:
+      - db
+    networks:
+      - sardis_network
+    command: ["bin/rails", "jobs:work", "-q", "default"]
   db:
     image: postgres:17
     environment:
