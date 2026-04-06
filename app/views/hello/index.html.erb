@@ -1,16 +1,11 @@
 <h1>Simple Video Downloader</h1>
 
 <p>This app is intended to help members of my church use videos in their bible study presentations without advertisements.</p>
-
-<p>Please enter our church's street address number, only the number, no street name or city or state or zip code</p>
     
 <% if flash[:error] %>
     <div class="error"><%= flash[:error] %></div>
 <% end %>
 
-<% if session[:user_id].present? %>
-    <p>Welcome, <%= current_user.username %></p>
-    <%= button_to "Logout", session_path(current_user.session), method: :delete %>
-<% else %>
+<% unless session[:user_id].present? %>
   <%= link_to 'Create an Account', new_user_path %> or <%= link_to 'Login', new_session_path %>
 <% end %>
