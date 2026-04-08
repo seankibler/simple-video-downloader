@@ -9,12 +9,12 @@ class User < ApplicationRecord
     has_many :videos
 
     def video_limit_exceeded?
-        return true if videos.nil? || videos.empty?
+        return false if videos.nil? || videos.empty?
         videos.count >= MAX_VIDEOS
     end
 
     def video_storage_limit_exceeded?
-        return true if Video.where(user: self).blank?
+        return false if Video.where(user: self).blank?
         Video.where(user: self).sum { |video| video&.recording&.byte_size || 0 } >= MAX_STORAGE
     end
 end
