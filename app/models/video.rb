@@ -1,6 +1,4 @@
 class Video < ApplicationRecord
-    MAX_VIDEOS = 50.freeze
-    MAX_STORAGE = 100.megabyte.freeze
     VALID_YOUTUBE_HOSTS = %w[www.youtube.com www.youtu.be youtube.com youtu.be].freeze
 
     belongs_to :user
