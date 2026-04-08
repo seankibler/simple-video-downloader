@@ -1,11 +1,13 @@
 services:
   app:
-    image: registry.digitalocean.com/${DIGITALOCEAN_REGISTRY_NAME}/simple-video-downloader:latest
-    pull_policy: always
+    image: simple-video-downloader:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - 3000:3000
     networks:
-      - main
+      - sardis_network
     environment:
       - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/sardis
@@ -13,7 +15,10 @@ services:
     depends_on:
       - db
   worker:
-    image: registry.digitalocean.com/${DIGITALOCEAN_REGISTRY_NAME}/simple-video-downloader:latest
+    image: simple-video-downloader:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/sardis
       - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
@@ -34,11 +39,11 @@ services:
     ports:
       - 5432:5432
     networks:
-      - main
+      - sardis_network
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - sardis_db_data:/var/lib/postgresql/data
 
 volumes:
-  db_data:
+  sardis_db_data:
 networks:
-  main:
+  sardis_network:
