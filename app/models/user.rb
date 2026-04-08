@@ -5,7 +5,6 @@ class User < ApplicationRecord
     attr_accessor :secret_code
 
     validates :username, presence: true, uniqueness: true
-    validates :secret_code, presence: true, format: { with: /\A\d+\z/, message: "must be a number" }
 
     has_many :videos
 

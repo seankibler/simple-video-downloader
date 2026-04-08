@@ -7,8 +7,8 @@
 <%= form_for @user do |f| %>
     <%= f.label :username %>
     <%= f.text_field :username %>
-    <%= f.label :secret_code %>
-    <%= f.password_field :secret_code %>
+    <%= label_tag :secret_code %>
+    <%= password_field_tag :secret_code %>
     <%= f.submit "Create Account" %>
 <% end %>
 
