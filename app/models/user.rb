@@ -8,6 +8,11 @@ class User < ApplicationRecord
 
     has_many :videos
 
+    def total_storage_used
+        return 0 if videos.nil? || videos.empty?
+        videos.sum { |video| video&.recording&.byte_size || 0 }
+    end
+
     def video_limit_exceeded?
         return false if videos.nil? || videos.empty?
         videos.count >= MAX_VIDEOS
