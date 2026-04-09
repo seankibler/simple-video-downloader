@@ -85,6 +85,11 @@ class Video < ApplicationRecord
 
         uri = URI.parse(self.link)
 
+        # If there are no query parameters, return the link as is
+        if uri.query.blank?
+            return
+        end
+
         new_args = uri.query.split("&").select do |link_arg|
             !link_arg.start_with?("list=")
         end
