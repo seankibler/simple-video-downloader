@@ -6,6 +6,7 @@ class Video < ApplicationRecord
     has_one_attached :recording
 
     before_create :set_status
+    before_create :normalize_link
 
     enum :status, { pending: 0, downloaded: 1, failed: 2, processing: 3 }
 
@@ -77,5 +78,22 @@ class Video < ApplicationRecord
         end
 
         true
+    end
+
+    def normalize_link
+        self.link = self.link.strip
+
+        uri = URI.parse(self.link)
+
+        new_args = uri.query.split("&").select do |link_arg|
+            !link_arg.start_with?("list=")
+        end
+
+        if new_args.empty?
+            self.link = "#{uri.scheme}://#{uri.host}#{uri.path}"
+            return
+        end
+
+        self.link = "#{uri.scheme}://#{uri.host}#{uri.path}?#{new_args.join("&")}"
     end
 end
