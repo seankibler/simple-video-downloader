@@ -1,3 +1,4 @@
+require "fileutils"
 require "open3"
 
 class VideoDownloaderService
@@ -15,8 +16,11 @@ class VideoDownloaderService
 
     COOKIE_FILE_PATH = File.join(Rails.root, 'cookies-latest.txt')
 
+    attr_reader :dir
+
     def initialize(video)
         @video = video
+        @dir = Dir.mktmpdir("ytdlp-#{@video.id}")
     end
 
     # `--dump-json` (-j) implies --simulate unless you pass --no-simulate, so without it
@@ -29,66 +33,53 @@ class VideoDownloaderService
             return
         end
 
-        format_id = find_preferred_format
-
         @video.recording.purge if @video.recording.attached?
 
         Rails.logger.info "Downloading video from #{@video.link}"
 
-        Dir.mktmpdir("ytdlp-#{@video.id}") do |dir|
-            output_template = File.join(dir, "#{@video.id}.%(ext)s")
-            stdout, status = Open3.capture2(
-                "yt-dlp",
-                "--no-simulate",
-                "-f", format_id,
-                "-j",
-                cookie_option,
-                "--no-progress",
-                "-o", output_template,
-                "--",
-                @video.link
-            )
+        stdout, status = Open3.capture2("yt-dlp", *download_args)
 
-            begin
-                @video.command_output = JSON.parse(stdout).except(*YTDLP_KEYS_TO_EXCLUDE)
-            rescue JSON::ParserError
-                @video.command_output = {
-                    "error" => "Failed to parse command output",
-                    "output" => stdout.to_s
-                }
-            end
+        begin
+            @video.command_output = JSON.parse(stdout).except(*YTDLP_KEYS_TO_EXCLUDE)
+        rescue JSON::ParserError
+            @video.command_output = {
+                "error" => "Failed to parse command output",
+                "output" => stdout.to_s
+            }
+        end
 
-            if status.success?
-                path = Dir.glob(File.join(dir, "#{@video.id}.*")).find { |p| File.file?(p) && !p.end_with?(".part") }
-                if path
-                    # Active Storage may read `io` during `save`, so keep the handle open until then.
-                    io = File.open(path, "rb")
-                    begin
-                        @video.recording.attach(
-                            io: io,
-                            filename: File.basename(path),
-                            content_type: recording_content_type(path)
-                        )
-                        @video.status = :downloaded
-                        @video.save!
-                    ensure
-                        io.close
-                    end
-                else
-                    @video.status = :failed
-                    @video.command_output = (@video.command_output || {}).merge("error" => "yt-dlp exited 0 but no file was written")
+        if status.success?
+            path = Dir.glob(File.join(dir, "#{@video.id}.*")).find { |p| File.file?(p) && !p.end_with?(".part") }
+            if path
+                # Active Storage may read `io` during `save`, so keep the handle open until then.
+                io = File.open(path, "rb")
+                begin
+                    @video.recording.attach(
+                        io: io,
+                        filename: File.basename(path),
+                        content_type: recording_content_type(path)
+                    )
+                    @video.status = :downloaded
+                    @video.save!
+                ensure
+                    io.close
                 end
             else
                 @video.status = :failed
+                @video.command_output = (@video.command_output || {}).merge("error" => "yt-dlp exited 0 but no file was written")
             end
+        else
+            @video.status = :failed
         end
 
         @video.save if @video.changed?
+    ensure
+      FileUtils.rm_rf(dir)
     end
 
     # Find the preferred format code from the available formats
     def find_preferred_format
-        output, status = Open3.capture2("yt-dlp", cookie_option, "--dump-json", "--quiet", "--", @video.link)
+        output, status = Open3.capture2("yt-dlp", *simulate_args)
         begin
             Rails.logger.info "Available formats: #{output}"
             available_formats = JSON.parse(output)["formats"]
@@ -128,11 +119,35 @@ class VideoDownloaderService
         false
     end
 
+    def download_args
+      ["--no-simulate",
+       "-f", best_format_id,
+       "-j",
+       cookie_option,
+       "--no-progress",
+       "-o", output_template,
+       "--",
+       @video.link].compact
+    end
+
+    def simulate_args
+      [cookie_option, "--dump-json", "--quiet", "--", @video.link].compact
+    end
+
+    def output_template
+      @output_template ||= File.join(dir, "#{@video.id}.%(ext)s")
+    end
+
+    def best_format_id
+      @best_format_id ||= find_preferred_format
+    end
+
     def cookie_option
-      if File.exists?(COOKIE_FILE_PATH)
-        "--cookie #{COOKIE_FILE_PATH}"
-      else
+      if !File.exist?(COOKIE_FILE_PATH)
         Rails.logger.warn("No cookie file available")
+        return nil
       end
+
+      "--cookie #{COOKIE_FILE_PATH}"
     end
 end
