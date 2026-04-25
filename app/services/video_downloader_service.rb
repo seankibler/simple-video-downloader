@@ -13,6 +13,8 @@ class VideoDownloaderService
       heatmap storyboards
     ].freeze
 
+    COOKIE_FILE_PATH = File.join(Rails.root, 'cookies-latest.txt')
+
     def initialize(video)
         @video = video
     end
@@ -40,6 +42,7 @@ class VideoDownloaderService
                 "--no-simulate",
                 "-f", format_id,
                 "-j",
+                cookie_option,
                 "--no-progress",
                 "-o", output_template,
                 "--",
@@ -85,7 +88,7 @@ class VideoDownloaderService
 
     # Find the preferred format code from the available formats
     def find_preferred_format
-        output, status = Open3.capture2("yt-dlp", "--dump-json", "--quiet", "--", @video.link)
+        output, status = Open3.capture2("yt-dlp", cookie_option, "--dump-json", "--quiet", "--", @video.link)
         begin
             Rails.logger.info "Available formats: #{output}"
             available_formats = JSON.parse(output)["formats"]
@@ -123,5 +126,13 @@ class VideoDownloaderService
         status.success?
     rescue Errno::ENOENT
         false
+    end
+
+    def cookie_option
+      if File.exists?(COOKIE_FILE_PATH)
+        "--cookie #{COOKIE_FILE_PATH}"
+      else
+        Rails.logger.warn("No cookie file available")
+      end
     end
 end
