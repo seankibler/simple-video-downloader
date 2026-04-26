@@ -120,17 +120,17 @@ class VideoDownloaderService
     end
 
     def download_args
-      ["--no-simulate",
+      cookie_options + ["--no-simulate",
        "-f", best_format_id,
        "-j",
        "--no-progress",
        "-o", output_template,
        "--",
-       @video.link] + cookie_options
+       @video.link]
     end
 
     def simulate_args
-      ["--dump-json", "--quiet", "--", @video.link] + cookie_options
+      cookie_options + ["--dump-json", "--quiet", "--", @video.link]
     end
 
     def output_template
