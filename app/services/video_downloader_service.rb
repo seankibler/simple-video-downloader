@@ -37,7 +37,7 @@ class VideoDownloaderService
 
         Rails.logger.info "Downloading video from #{@video.link}"
 
-        stdout, status = Open3.capture2("yt-dlp", *download_args)
+        stdout, status = Open3.capture2("yt-dlp", *download_args.compact)
 
         begin
             @video.command_output = JSON.parse(stdout).except(*YTDLP_KEYS_TO_EXCLUDE)
@@ -79,7 +79,7 @@ class VideoDownloaderService
 
     # Find the preferred format code from the available formats
     def find_preferred_format
-        output, status = Open3.capture2("yt-dlp", *simulate_args)
+        output, status = Open3.capture2("yt-dlp", *simulate_args.compact)
         begin
             Rails.logger.info "Available formats: #{output}"
             available_formats = JSON.parse(output)["formats"]
@@ -123,15 +123,14 @@ class VideoDownloaderService
       ["--no-simulate",
        "-f", best_format_id,
        "-j",
-       cookie_option,
        "--no-progress",
        "-o", output_template,
        "--",
-       @video.link].compact
+       @video.link] + cookie_options
     end
 
     def simulate_args
-      [cookie_option, "--dump-json", "--quiet", "--", @video.link].compact
+      ["--dump-json", "--quiet", "--", @video.link] + cookie_options
     end
 
     def output_template
@@ -142,12 +141,12 @@ class VideoDownloaderService
       @best_format_id ||= find_preferred_format
     end
 
-    def cookie_option
+    def cookie_options
       if !File.exist?(COOKIE_FILE_PATH)
         Rails.logger.warn("No cookie file available")
-        return nil
+        return []
       end
 
-      "--cookies #{COOKIE_FILE_PATH}"
+      ["--cookies", COOKIE_FILE_PATH]
     end
 end
