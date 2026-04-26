@@ -148,6 +148,6 @@ class VideoDownloaderService
         return nil
       end
 
-      "--cookie #{COOKIE_FILE_PATH}"
+      "--cookies #{COOKIE_FILE_PATH}"
     end
 end
