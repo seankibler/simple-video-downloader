@@ -20,8 +20,6 @@ services:
       - AWS_REGION=${AWS_REGION}
       - AWS_BUCKET=${AWS_BUCKET}
       - AWS_ENDPOINT=${AWS_ENDPOINT}
-    volumes:
-      app_storage:/rails/storage
     depends_on:
       - db
   worker:
@@ -41,8 +39,6 @@ services:
       - AWS_REGION=${AWS_REGION}
       - AWS_BUCKET=${AWS_BUCKET}
       - AWS_ENDPOINT=${AWS_ENDPOINT}
-    volumes:
-      app_storage:/rails/storage
     depends_on:
       - db
     networks:
@@ -63,6 +59,5 @@ services:
 
 volumes:
   sardis_db_data:
-  app_storage:
 networks:
   sardis_network:
