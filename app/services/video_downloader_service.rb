@@ -14,13 +14,17 @@ class VideoDownloaderService
       heatmap storyboards
     ].freeze
 
-    COOKIE_FILE_PATH = File.join(Rails.root, 'cookies-latest.txt')
+    COOKIE_FILE_PATH = File.join(Rails.root.join('tmp'), 'cookies-latest.txt').freeze
+    COOKIE_FILE_S3_KEY = "private/auth/cookies-latest.txt".freeze
+    COOKIE_CACHE_DURATION = 1.hour.freeze
 
     attr_reader :dir
 
     def initialize(video)
         @video = video
         @dir = Dir.mktmpdir("ytdlp-#{@video.id}")
+
+        initialize_s3_client
     end
 
     # `--dump-json` (-j) implies --simulate unless you pass --no-simulate, so without it
@@ -141,12 +145,59 @@ class VideoDownloaderService
       @best_format_id ||= find_preferred_format
     end
 
-    def cookie_options
-      if !File.exist?(COOKIE_FILE_PATH)
-        Rails.logger.warn("No cookie file available")
-        return []
-      end
+    def download_cookie_file
+        if File.exist?(COOKIE_FILE_PATH) && File.mtime(COOKIE_FILE_PATH) >= COOKIE_CACHE_DURATION.ago
+            Rails.logger.info("Using cached cookie file from #{COOKIE_FILE_PATH}, cache valid for #{File.mtime(COOKIE_FILE_PATH) - COOKIE_CACHE_DURATION.ago}ms")
+            return true
+        end
 
-      ["--cookies", COOKIE_FILE_PATH]
+        Rails.logger.info("Downloading cookie file from s3://#{ENV["AWS_BUCKET"]}/#{COOKIE_FILE_S3_KEY} to #{COOKIE_FILE_PATH}")
+
+        cookies_content = @s3_client.get_object(
+            response_target: COOKIE_FILE_PATH, 
+            bucket: ENV["AWS_BUCKET"], 
+            key: COOKIE_FILE_S3_KEY
+        )
+
+        if cookies_content.content_length > 0
+            Rails.logger.info("Downloaded cookie file from S3 with etag: #{cookies_content.etag}")
+            return true
+        else
+            Rails.logger.warn("Failed to download cookie file from S3")
+            return false
+        end
+    end
+
+    def always_download_cookie_file?
+        return false unless ENV["ALWAYS_DOWNLOAD_COOKIE_FILE"].present?
+
+        # allow values true, t, yes, y, 1, anything else is false
+        ENV["ALWAYS_DOWNLOAD_COOKIE_FILE"].downcase.in?(%w[true t yes y 1])
+    end
+
+    def cookie_options
+        return [] unless always_download_cookie_file? || !Rails.env.production?
+        
+        return [] unless download_cookie_file
+
+        ["--cookies", COOKIE_FILE_PATH]
+    end
+
+    def initialize_s3_client
+        return unless s3_configured?
+
+        @s3_client = Aws::S3::Client.new(
+            region: ENV["AWS_REGION"],
+            access_key_id: ENV["AWS_ACCESS_KEY_ID"],
+            secret_access_key: ENV["AWS_SECRET_ACCESS_KEY"],
+            endpoint: ENV["AWS_ENDPOINT"]
+        )
+    end
+
+    def s3_configured?
+        ENV["AWS_REGION"].present? &&
+        ENV["AWS_ACCESS_KEY_ID"].present? &&
+        ENV["AWS_SECRET_ACCESS_KEY"].present? &&
+        ENV["AWS_ENDPOINT"].present?
     end
 end

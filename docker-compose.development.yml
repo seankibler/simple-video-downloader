@@ -11,6 +11,15 @@ services:
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/sardis
       - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+      - CACHE_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/sardis_cache
+      - QUEUE_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/sardis_queue
+      - CABLE_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/sardis_cable
+      - ALWAYS_DOWNLOAD_COOKIE_FILE=true
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_ENDPOINT=${AWS_ENDPOINT}
+      - AWS_BUCKET=${AWS_BUCKET}
       - SECRET_CODE=${SECRET_CODE}
     volumes:
       - ./:/rails
