@@ -1,6 +1,6 @@
 services:
   app:
-    image: simple-video-downloader:latest
+    image: localhost/simple-video-downloader:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -15,10 +15,17 @@ services:
       - QUEUE_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/sardis_queue
       - CABLE_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/sardis_cable
       - SECRET_CODE=${SECRET_CODE}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_BUCKET=${AWS_BUCKET}
+      - AWS_ENDPOINT=${AWS_ENDPOINT}
+    volumes:
+      app_storage:/rails/storage
     depends_on:
       - db
   worker:
-    image: simple-video-downloader:latest
+    image: localhost/simple-video-downloader:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -30,12 +37,12 @@ services:
       - CABLE_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/sardis_cable
       - SECRET_CODE=${SECRET_CODE}
     volumes:
-      - ./:/rails
+      app_storage:/rails/storage
     depends_on:
       - db
     networks:
       - sardis_network
-    command: ["bin/rails", "jobs:work", "-q", "default"]
+    command: ["bin/rails", "solid_queue:start"]
   db:
     image: postgres:17
     environment:
@@ -51,5 +58,6 @@ services:
 
 volumes:
   sardis_db_data:
+  app_storage:
 networks:
   sardis_network:

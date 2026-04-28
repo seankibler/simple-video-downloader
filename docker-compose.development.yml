@@ -1,6 +1,6 @@
 services:
   app:
-    image: simple-video-downloader:development
+    image: localhost/simple-video-downloader:development
     build:
       context: .
       dockerfile: Dockerfile.development
