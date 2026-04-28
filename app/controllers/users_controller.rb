@@ -8,7 +8,8 @@ class UsersController < ApplicationController
     def create
         @user = User.new(user_params)
         if @user.save
-            redirect_to root_path, notice: "User created successfully"
+            session[:user_id] = @user.id
+            redirect_to videos_path, notice: "Welcome to the app #{@user.username}! You can now start downloading videos."
         else
             render :new
         end

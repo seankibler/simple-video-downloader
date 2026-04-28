@@ -32,8 +32,8 @@
     <% end %>
     <div class="navigation">
       <%= link_to "Home", root_path %>
-      <%= link_to "Videos", videos_path %>
       <% if current_user.present? %>
+        <%= link_to "My Videos", videos_path %>
         <%= link_to "Logout (#{current_user.username})", session_path(current_user.id), data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to logout?" } %>
         <span>Storage: <%= number_to_human_size(current_user.total_storage_used) %> / <%= number_to_human_size(User::MAX_STORAGE) %></span>
         <span>Videos: <%= current_user.videos.count %>/<%= User::MAX_VIDEOS %></span>

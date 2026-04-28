@@ -8,13 +8,13 @@ class SessionsController < ApplicationController
         user = User.find_by(username: params[:username])        
 
         if user.present? && params[:secret_code] == SECRET_CODE
-            Rails.logger.info "Login successful for user #{user.username}"
+            Rails.logger.debug "Login successful for user #{user.username}"
             session[:user_id] = user.id
             redirect_to root_path, notice: "Login successful"
         else
-            Rails.logger.info "APP SECRET CODE: #{SECRET_CODE}"
-            Rails.logger.info "PARAMS SECRET CODE: #{params[:secret_code]}"
-            Rails.logger.info "Login failed for user #{params[:username]} with secret code #{params[:secret_code]}"
+            Rails.logger.debug "APP SECRET CODE: #{SECRET_CODE}"
+            Rails.logger.debug "PARAMS SECRET CODE: #{params[:secret_code]}"
+            Rails.logger.debug "Login failed for user #{params[:username]} with secret code #{params[:secret_code]}"
             flash.now[:error] = "Invalid username or secret code"
             render :new
         end
