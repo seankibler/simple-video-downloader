@@ -79,6 +79,7 @@ class VideoDownloaderService
         @video.save if @video.changed?
     ensure
       FileUtils.rm_rf(dir)
+      VideoNotificationJob.perform_later(@video)
     end
 
     # Find the preferred format code from the available formats
